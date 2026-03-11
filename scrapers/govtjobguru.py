@@ -7,6 +7,14 @@ from scrapers._base import find_vacancies, find_qualification, extract_fields_fr
 
 URL = "https://govtjobguru.in/"
 
+NOISE = re.compile(
+    r'^(A\s*Job\s*Information|Active\s*Form|Latest\s*Job|Central\s*Job|Job\s*Samachar|'
+    r'Offline\s*Form|Admit\s*Card|Exam\s*Syllabus|Copy\s*Post|'
+    r'Doctors\d*|10th\d*|12th\d*|Diploma\d*|All\s*Jobs\d*|Post.Graduation\d*|'
+    r'Graduation\d*|Railway\d*|Defence\d*|Engineers\d*|Teachers\d*|Clerks\d*)\b',
+    re.I
+)
+
 def scrape_govtjobguru():
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     resp = requests.get(URL, headers=headers, timeout=15)
@@ -18,6 +26,8 @@ def scrape_govtjobguru():
         title = a.get_text(strip=True)
         link = a.get("href", "")
         if not title or len(title) < 15 or link in seen:
+            continue
+        if NOISE.match(title):
             continue
         if not re.search(r'recruit|vacanc|post|apply|job|exam|notif|form|admit|result', title, re.I):
             continue
