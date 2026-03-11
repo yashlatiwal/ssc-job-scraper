@@ -1,42 +1,71 @@
 import requests
 from bs4 import BeautifulSoup
-import re, time
-from scrapers._base import clean, extract_from_tables, merge_with_text
+import re
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
 
-LISTING_URL = "https://haryanajobs.in/category/latest-jobs/"
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"}
-
-def extract_detail(url):
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        detail = extract_from_tables(soup)
-        text = clean(soup.get_text(separator=" "))
-        return merge_with_text(detail, text)
-    except Exception as e:
-        print(f"    ⚠️ {e}")
-        return {"vacancies":0,"age":"Not specified","lastDate":"TBD","lastDateFull":"TBD","payLevel":"Not specified","qualification":"Graduation"}
+URLS = [
+    "https://haryanajobs.in/category/latest-jobs/",
+    "https://haryanajobs.in/",
+]
 
 def scrape_haryanajobs():
-    resp = requests.get(LISTING_URL, headers=HEADERS, timeout=15)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    links = [(a.get_text(strip=True), a["href"]) for a in soup.select("h2.entry-title a, h3.entry-title a, .entry-title a") if a.get("href")]
-    if not links:
-        seen = set()
-        for a in soup.select("a[href]"):
-            t = a.get_text(strip=True); h = a.get("href","")
-            if len(t) > 20 and h.startswith("https://haryanajobs.in/") and h not in seen:
-                links.append((t,h)); seen.add(h)
-    print(f"  haryanajobs: {len(links)} listings")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Referer": "https://www.google.com/",
+    }
     jobs = []
-    for title, link in links[:25]:
-        print(f"    → {title[:70]}")
-        d = extract_detail(link); time.sleep(0.5)
-        vt = re.search(r'(\d{2,6})\s*(Posts?|Vacancy|Vacancies)', title, re.I)
-        jobs.append({"org":title.split()[0],"fullOrg":title.split(":")[0].strip() if ":" in title else title.split()[0],
-            "post":title,"vacancies":d["vacancies"] or (int(vt.group(1)) if vt else 0),
-            "qualification":d["qualification"],"age":d["age"],"lastDate":d["lastDate"],
-            "lastDateFull":d["lastDateFull"],"startDate":"TBD","payLevel":d["payLevel"],
-            "category":"Govt","state":"Central" if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bNavy\b|\bArmy\b|\bNDA\b', title, re.I) else "State",
-            "link":link,"source":"haryanajobs.in"})
+    seen = set()
+
+    for url in URLS:
+        try:
+            resp = requests.get(url, headers=headers, timeout=15)
+            print(f"  haryanajobs {url[-30:]} → HTTP {resp.status_code}")
+            if resp.status_code != 200:
+                continue
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            for article in soup.select("article.post, .post, h2.entry-title, h3.entry-title")[:40]:
+                title_tag = article.select_one("a[href]") if article.name != "a" else article
+                if not title_tag:
+                    continue
+                title = title_tag.get_text(strip=True)
+                link = title_tag.get("href", "")
+                if not title or len(title) < 10 or link in seen:
+                    continue
+                if not re.search(r'recruit|vacanc|post|apply|job|notif|form', title, re.I):
+                    continue
+                seen.add(link)
+
+                vac = find_vacancies(title)
+                qual = find_qualification(title)
+                state = "State"
+                if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b', title, re.I):
+                    state = "Central"
+
+                org = title.split()[0] if title else "Unknown"
+                detail = extract_fields_from_detail(link) if link else {}
+
+                jobs.append({
+                    "org": org,
+                    "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
+                    "post": title,
+                    "vacancies": detail.get("vac") or vac,
+                    "qualification": detail.get("q") or qual,
+                    "age": detail.get("age", ""),
+                    "lastDate": detail.get("ld", "TBD"),
+                    "lastDateFull": detail.get("ld", "TBD"),
+                    "startDate": "TBD",
+                    "payLevel": detail.get("pay", ""),
+                    "category": "Govt",
+                    "state": state,
+                    "link": link,
+                })
+        except Exception as e:
+            print(f"  haryanajobs error: {e}")
+
+    print(f"  raw count from haryanajobs.in: {len(jobs)}")
     return jobs
