@@ -73,7 +73,7 @@ def find_vacancies(text):
         m = re.search(pat, text, re.I)
         if m:
             v = int(m.group(1).replace(',', ''))
-            if 1 <= v <= 200000:
+            if 1 <= v <= 200000 and not (2020 <= v <= 2030):  # reject years
                 return v
     return 0
 
