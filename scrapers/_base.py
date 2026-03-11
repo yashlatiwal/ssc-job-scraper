@@ -84,12 +84,14 @@ def find_pay(text):
     m = re.search(r'(?:rs\.?|₹)\s*([\d,]+)\s*(?:to|-|–)\s*(?:rs\.?|₹)?\s*([\d,]+)', text, re.I)
     if m:
         lo, hi = int(m.group(1).replace(",","")), int(m.group(2).replace(",",""))
-        if 5000 <= lo <= 500000: return f"₹{lo//1000}k-{hi//1000}k/mo"
+        # Must be plausible salary, not a date or ID number
+        if 5000 <= lo <= 500000 and hi > lo and hi <= 1000000:
+            return f"₹{lo//1000}k-{hi//1000}k/mo"
 
     m = re.search(r'(?:fixed\s*pay|consolidated|stipend)[:\s]+(?:rs\.?|₹)\s*([\d,]+)', text, re.I)
     if m:
         amt = int(m.group(1).replace(",",""))
-        if amt > 1000: return f"₹{amt//1000}k/mo"
+        if 5000 < amt <= 500000: return f"₹{amt//1000}k/mo"
 
     return "Not specified"
 
@@ -120,8 +122,10 @@ def extract_from_tables(soup):
             if ld != "TBD": detail["lastDate"] = ld
             elif re.search(r'\d{4}', val) and len(val) > 4: detail["lastDate"] = val[:40]
         elif any(k in key for k in ["pay level","pay scale","pay matrix","salary","pay band","remuneration","ctc","emolument","stipend"]):
-            p = find_pay(val)
-            if p != "Not specified": detail["payLevel"] = p
+            # Skip if value looks like a date
+            if not re.match(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$', val.strip()):
+                p = find_pay(val)
+                if p != "Not specified": detail["payLevel"] = p
         elif any(k in key for k in ["qualif","education","academic","eligib"]):
             detail["qualification"] = find_qualification(val)
 
