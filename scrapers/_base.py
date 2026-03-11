@@ -186,6 +186,37 @@ def extract_from_tables(soup):
     return detail
 
 
+def clean(text):
+    """Collapse whitespace and strip a block of text."""
+    if not text:
+        return ""
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def extract_fields_from_detail(url):
+    """Fetch a job detail page and extract fields. Returns dict with keys:
+    vac, q, age, ld, pay."""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        detail = extract_from_tables(soup)
+        text = clean(soup.get_text(separator=" "))
+        merged = merge_with_text(detail, text)
+        return {
+            "vac": merged.get("vacancies", 0),
+            "q": merged.get("qualification", ""),
+            "age": merged.get("age", ""),
+            "ld": merged.get("lastDate", ""),
+            "pay": merged.get("payLevel", ""),
+        }
+    except Exception as e:
+        print(f"    ⚠️ extract_fields_from_detail: {e}")
+        return {}
+
+
 def merge_with_text(detail, full_text, post_title=""):
     """Fill blank fields using full page text, then keyword inference as last resort."""
     if not detail.get("vacancies"):
