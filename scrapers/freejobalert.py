@@ -29,7 +29,16 @@ def scrape_freejobalert():
             links.append((t,h)); seen.add(h)
     print(f"  freejobalert: {len(links)} listings")
     jobs = []
+    NOISE = re.compile(
+        r'^(Apprentices\d*|Professors\d*|Teachers\d*|Clerks\d*|Doctors\d*|Security Officers\d*|Engineers\d*|'
+        r'All India Govt|State Govt|Engineering Jobs|Police|Upcoming Notifications|'
+        r'Work From Home|Sports Quota|Ex-Servicemen|Examwise|Notification Status|'
+        r'FreeJobAlert|Anganwadi Recruitment|NIB Recruitment|NATA\b)\b',
+        re.I
+    )
     for title, link in links[:30]:
+        if NOISE.match(title):
+            continue
         print(f"    → {title[:70]}")
         d = extract_detail(link); time.sleep(0.6)
         vt = re.search(r'(\d{2,6})\s*(Posts?|Vacancy|Vacancies)', title, re.I)
