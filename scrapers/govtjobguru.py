@@ -5,33 +5,28 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
 
-URL = "https://sarkarinetwork.com/latest-update/"
+URL = "https://govtjobguru.in/"
 
-def scrape_sarkarinetwork():
+def scrape_govtjobguru():
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     resp = requests.get(URL, headers=headers, timeout=15)
     soup = BeautifulSoup(resp.text, "html.parser")
     jobs = []
     seen = set()
 
-    for row in soup.select("table tr, .post-list li, article, a[href]")[:80]:
-        a = row if row.name == "a" else row.select_one("a[href]")
-        if not a:
-            continue
+    for a in soup.select("a[href]")[:80]:
         title = a.get_text(strip=True)
         link = a.get("href", "")
-        if not title or len(title) < 10 or link in seen:
+        if not title or len(title) < 15 or link in seen:
             continue
         if not re.search(r'recruit|vacanc|post|apply|job|exam|notif|form|admit|result', title, re.I):
-            continue
-        if "comment" in link or re.match(r'^\d+$', title):
             continue
         seen.add(link)
 
         vac = find_vacancies(title)
         qual = find_qualification(title)
         state = "Central"
-        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|HP\b|J&K|Delhi\b', title, re.I):
+        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra', title, re.I):
             state = "State"
 
         org = title.split()[0] if title else "Unknown"
@@ -53,5 +48,5 @@ def scrape_sarkarinetwork():
             "link": link,
         })
 
-    print(f"  sarkarinetwork: {len(jobs)} listings")
+    print(f"  govtjobguru: {len(jobs)} listings")
     return jobs
