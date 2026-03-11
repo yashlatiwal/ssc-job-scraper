@@ -1,70 +1,56 @@
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import date
 from scrapers.haryanajobs import scrape_haryanajobs
 from scrapers.sarkarinetwork import scrape_sarkarinetwork
 from scrapers.govtjobguru import scrape_govtjobguru
 from scrapers.freejobalert import scrape_freejobalert
+from scrapers._base import infer_pay_from_text
 from telegram_sender import send_jobs
 
-def is_recent(job, days=10):
-    try:
-        d = datetime.strptime(job.get("releaseDate",""), "%Y-%m-%d")
-        return d >= datetime.now() - timedelta(days=days)
-    except:
-        return True
+TODAY = str(date.today())
 
-def dedupe(jobs):
-    seen = set()
-    out = []
-    for j in jobs:
-        key = j.get("post","")[:60].lower().strip()
-        if key not in seen:
-            seen.add(key)
-            out.append(j)
-    return out
-
-def run():
-    today = datetime.now().strftime("%Y-%m-%d")
+def main():
+    print(f"🔍 Scraping jobs for {TODAY}...")
     all_jobs = []
 
     scrapers = [
-        ("haryanajobs",    scrape_haryanajobs),
-        ("sarkarinetwork", scrape_sarkarinetwork),
-        ("govtjobguru",    scrape_govtjobguru),
-        ("freejobalert",   scrape_freejobalert),
+        ("haryanajobs.in",    scrape_haryanajobs),
+        ("sarkarinetwork.com", scrape_sarkarinetwork),
+        ("govtjobguru.in",    scrape_govtjobguru),
+        ("freejobalert.com",  scrape_freejobalert),
     ]
 
-    for name, fn in scrapers:
+    for source, fn in scrapers:
         try:
-            print(f"\n🔍 Scraping {name}...")
             jobs = fn()
             for j in jobs:
-                j["releaseDate"] = today
+                j["source"] = source
+                j["releaseDate"] = TODAY
                 j["isNew"] = True
-                j.setdefault("source", f"{name}.com")
+                # Fallback: infer pay from title if scraper couldn't find it
+                if not j.get("payLevel") or j["payLevel"] == "Not specified":
+                    title = j.get("post", "") + " " + j.get("org", "")
+                    inferred = infer_pay_from_text(title)
+                    if inferred:
+                        j["payLevel"] = inferred
             all_jobs.extend(jobs)
-            print(f"  ✅ {len(jobs)} jobs from {name}")
+            print(f"  ✅ {source}: {len(jobs)} jobs")
         except Exception as e:
-            print(f"  ❌ {name} failed: {e}")
+            print(f"  ❌ {source}: {e}")
 
-    # Deduplicate
-    all_jobs = dedupe(all_jobs)
-    print(f"\n📦 Total after dedup: {len(all_jobs)} jobs")
+    with open("jobs_data.json", "w", encoding="utf-8") as f:
+        json.dump(all_jobs, f, ensure_ascii=False, indent=2)
 
-    # Save JSON
-    filename = f"jobs_data.json"
-    with open(filename, "w") as f:
-        json.dump(all_jobs, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved to {filename}")
+    with_pay = sum(1 for j in all_jobs if j.get("payLevel") and j["payLevel"] != "Not specified")
+    print(f"\n📦 Total: {len(all_jobs)} jobs | With pay: {with_pay}/{len(all_jobs)}")
 
-    # Send to Telegram
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     if token and chat_id:
         send_jobs(all_jobs, token, chat_id)
     else:
-        print("⚠️ Telegram credentials not set")
+        print("⚠️  No Telegram credentials, skipping send.")
 
 if __name__ == "__main__":
-    run()
+    main()
