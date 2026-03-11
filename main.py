@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 from datetime import date
 from scrapers.haryanajobs import scrape_haryanajobs
 from scrapers.sarkarinetwork import scrape_sarkarinetwork
@@ -10,8 +11,28 @@ from telegram_sender import send_jobs
 
 TODAY = str(date.today())
 
+def test_connectivity():
+    """Quick check: can we reach each site at all?"""
+    sites = [
+        "https://haryanajobs.in/category/latest-jobs/",
+        "https://sarkarinetwork.com/latest-update/",
+        "https://govtjobguru.in/",
+        "https://www.freejobalert.com/latest-notifications/",
+    ]
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    for url in sites:
+        try:
+            r = requests.get(url, headers=headers, timeout=15)
+            print(f"  🌐 {url[:45]} → HTTP {r.status_code} | {len(r.text)} chars")
+        except Exception as e:
+            print(f"  🌐 {url[:45]} → ERROR: {e}")
+
 def main():
     print(f"🔍 Scraping jobs for {TODAY}...")
+    print("\n--- Connectivity test ---")
+    test_connectivity()
+    print("--- End connectivity ---\n")
+
     all_jobs = []
 
     scrapers = [
@@ -24,6 +45,7 @@ def main():
     for source, fn in scrapers:
         try:
             jobs = fn()
+            print(f"  raw count from {source}: {len(jobs)}")
             for j in jobs:
                 j["source"] = source
                 j["releaseDate"] = TODAY
