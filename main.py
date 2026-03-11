@@ -28,8 +28,7 @@ def main():
                 j["source"] = source
                 j["releaseDate"] = TODAY
                 j["isNew"] = True
-                # Fallback: infer pay from title if scraper couldn't find it
-                if not j.get("payLevel") or j["payLevel"] == "Not specified":
+                if not j.get("payLevel") or j["payLevel"] in ("", "Not specified"):
                     title = j.get("post", "") + " " + j.get("org", "")
                     inferred = infer_pay_from_text(title)
                     if inferred:
@@ -37,13 +36,17 @@ def main():
             all_jobs.extend(jobs)
             print(f"  ✅ {source}: {len(jobs)} jobs")
         except Exception as e:
+            import traceback
             print(f"  ❌ {source}: {e}")
+            traceback.print_exc()
+
+    print(f"\n📦 Total: {len(all_jobs)} jobs")
 
     with open("jobs_data.json", "w", encoding="utf-8") as f:
         json.dump(all_jobs, f, ensure_ascii=False, indent=2)
 
-    with_pay = sum(1 for j in all_jobs if j.get("payLevel") and j["payLevel"] != "Not specified")
-    print(f"\n📦 Total: {len(all_jobs)} jobs | With pay: {with_pay}/{len(all_jobs)}")
+    with_pay = sum(1 for j in all_jobs if j.get("payLevel") and j["payLevel"] not in ("", "Not specified"))
+    print(f"💰 With pay: {with_pay}/{len(all_jobs)}")
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
