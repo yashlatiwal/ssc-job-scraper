@@ -1,20 +1,28 @@
 import requests
 from bs4 import BeautifulSoup
-import re
+import re, time
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
 
 URL = "https://govtjobguru.in/"
 
 NOISE = re.compile(
-    r'(Jobs›|Jobs\s*›|\d+\s*Jobs|Result\s*Declared|Answer\s*Key|'
-    r'Admit\s*Card|Exam\s*Date|Exam\s*City|Score\s*Card|Cut\s*Off|'
-    r'A\s*Job\s*Information|Active\s*Form|Latest\s*Job\b|Central\s*Job\b|'
-    r'Job\s*Samachar|Offline\s*Form\b|Exam\s*Syllabus|Copy\s*Post|'
-    r'Interview\s*Results?|Walk-in\s*Schedule|DV\s*Candidates)',
+    r'(Jobs›|\d+\s*Jobs›?|Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
+    r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|A\s*Job\s*Information|'
+    r'Active\s*Form|Latest\s*Job\b|Central\s*Job\b|Job\s*Samachar|'
+    r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates|'
+    r'Notification\s*Status|Exam\s*Schedule)',
     re.I
 )
+
+def clean_title(t):
+    # govtjobguru appends: vacancy_count + ORG + qual + date after real title
+    t = re.sub(r'\d+[A-Z][A-Za-z].*$', '', t).strip()
+    t = re.sub(r'\s*(Bachelor|10\+2|10th|12th|Degree|Diploma|BDS|Various)\s*[\d\w].*$', '', t, flags=re.I).strip()
+    t = re.sub(r'\s*\d{1,2}\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*$', '', t, flags=re.I).strip()
+    t = re.sub(r'[\s,]+$', '', t).strip()
+    return t
 
 def scrape_govtjobguru():
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -23,11 +31,9 @@ def scrape_govtjobguru():
     jobs = []
     seen = set()
 
-    for a in soup.select("a[href]")[:100]:
-        title = a.get_text(strip=True)
-        # Strip junk metadata appended to titles
-        title = re.sub(r'\s*\d+\s*(SSB|UPSC|Punjab|Indian|OPSC|APSSB|Bihar|PSSSB|MPPSC|ITI|IOCL|CEL|KMC|HPRCA|NCERT|AAI|RRB|SSC|SBI|RBI|IBPS|IDBI)\b.*$', '', title).strip()
-        title = re.sub(r'\s*(Bachelor|10\+2|10th|12th|Degree|Diploma)\s*\d.*$', '', title, flags=re.I).strip()
+    for a in soup.select("a[href]")[:120]:
+        raw = a.get_text(strip=True)
+        title = clean_title(raw)
         link = a.get("href", "")
         if not title or len(title) < 15 or link in seen:
             continue
@@ -35,27 +41,29 @@ def scrape_govtjobguru():
             continue
         if not re.search(r'recruit|vacanc|apply|notif|form\b', title, re.I):
             continue
+        if not link.startswith("http"):
+            continue
         seen.add(link)
 
-        vac = find_vacancies(title)
+        vac = find_vacancies(title)   # title only — no detail bleed
         qual = find_qualification(title)
-        state = "Central"
-        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|Odisha', title, re.I):
-            state = "State"
-
+        state = "State" if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|Odisha|Kerala|Tamil|Andhra|Telangana|HP\b', title, re.I) else "Central"
         org = title.split()[0] if title else "Unknown"
+
+        detail = extract_fields_from_detail(link) if link else {}
+        time.sleep(0.3)
 
         jobs.append({
             "org": org,
             "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
             "post": title,
             "vacancies": vac,
-            "qualification": qual,
-            "age": "",
-            "lastDate": "TBD",
-            "lastDateFull": "TBD",
+            "qualification": detail.get("q") or qual,
+            "age": detail.get("age", ""),
+            "lastDate": detail.get("ld", "TBD"),
+            "lastDateFull": detail.get("ld", "TBD"),
             "startDate": "TBD",
-            "payLevel": "",
+            "payLevel": detail.get("pay", ""),
             "category": "Govt",
             "state": state,
             "link": link,

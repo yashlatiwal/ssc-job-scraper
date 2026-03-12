@@ -1,9 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-import re
+import re, time
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
 
 URLS = [
     "https://haryanajobs.in/category/latest-jobs/",
@@ -11,8 +11,8 @@ URLS = [
 ]
 
 NOISE = re.compile(
-    r'(Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
-    r'Exam\s*City|Score\s*Card|Cut\s*Off|Interview\s*Results?|DV\s*Candidates)',
+    r'(Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|Exam\s*City|'
+    r'Score\s*Card|Cut\s*Off|Interview\s*Results?|DV\s*Candidates|Syllabus)',
     re.I
 )
 
@@ -34,12 +34,12 @@ def scrape_haryanajobs():
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            for article in soup.select("article.post, .post, h2.entry-title, h3.entry-title")[:40]:
-                title_tag = article.select_one("a[href]") if article.name != "a" else article
-                if not title_tag:
+            for article in soup.select("article.post, .post, h2.entry-title, h3.entry-title")[:50]:
+                a = article.select_one("a[href]") if article.name != "a" else article
+                if not a:
                     continue
-                title = title_tag.get_text(strip=True)
-                link = title_tag.get("href", "")
+                title = a.get_text(strip=True)
+                link = a.get("href", "")
                 if not title or len(title) < 10 or link in seen:
                     continue
                 if NOISE.search(title):
@@ -50,21 +50,23 @@ def scrape_haryanajobs():
 
                 vac = find_vacancies(title)
                 qual = find_qualification(title)
-                state = "State"
-                if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b', title, re.I):
-                    state = "Central"
+                state = "Central" if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b|\bNDA\b', title, re.I) else "State"
+                org = title.split()[0] if title else "Unknown"
+
+                detail = extract_fields_from_detail(link) if link else {}
+                time.sleep(0.3)
 
                 jobs.append({
-                    "org": title.split()[0] if title else "Unknown",
+                    "org": org,
                     "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
                     "post": title,
                     "vacancies": vac,
-                    "qualification": qual,
-                    "age": "",
-                    "lastDate": "TBD",
-                    "lastDateFull": "TBD",
+                    "qualification": detail.get("q") or qual,
+                    "age": detail.get("age", ""),
+                    "lastDate": detail.get("ld", "TBD"),
+                    "lastDateFull": detail.get("ld", "TBD"),
                     "startDate": "TBD",
-                    "payLevel": "",
+                    "payLevel": detail.get("pay", ""),
                     "category": "Govt",
                     "state": state,
                     "link": link,

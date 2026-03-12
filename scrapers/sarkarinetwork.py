@@ -1,18 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
-import re
+import re, time
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
 
 URL = "https://sarkarinetwork.com/latest-update/"
 
 NOISE = re.compile(
-    r'(Jobs›|Jobs\s*›|\d+\s*Jobs|Result\s*Declared|Answer\s*Key|'
-    r'Admit\s*Card|Exam\s*Date|Exam\s*City|Score\s*Card|Cut\s*Off|'
-    r'A\s*Job\s*Information|Active\s*Form|Latest\s*Job\b|Central\s*Job\b|'
-    r'Job\s*Samachar|Offline\s*Form\b|Exam\s*Syllabus|Copy\s*Post|'
-    r'Interview\s*Results?|DV\s*Candidates)',
+    r'(Jobs›|\d+\s*Jobs›?|Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
+    r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|A\s*Job\s*Information|'
+    r'Active\s*Form|Latest\s*Job\b|Central\s*Job\b|Job\s*Samachar|'
+    r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates)',
     re.I
 )
 
@@ -23,10 +22,7 @@ def scrape_sarkarinetwork():
     jobs = []
     seen = set()
 
-    for row in soup.select("table tr, .post-list li, article, a[href]")[:100]:
-        a = row if row.name == "a" else row.select_one("a[href]")
-        if not a:
-            continue
+    for a in soup.select("a[href]")[:120]:
         title = a.get_text(strip=True)
         link = a.get("href", "")
         if not title or len(title) < 10 or link in seen:
@@ -35,27 +31,29 @@ def scrape_sarkarinetwork():
             continue
         if not re.search(r'recruit|vacanc|apply|notif|form\b', title, re.I):
             continue
-        if "comment" in link:
+        if not link.startswith("http") or "comment" in link:
             continue
         seen.add(link)
 
         vac = find_vacancies(title)
         qual = find_qualification(title)
-        state = "Central"
-        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|HP\b|J&K|Delhi\b', title, re.I):
-            state = "State"
+        state = "State" if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|HP\b|J&K|Delhi\b|Odisha|Kerala|Tamil|Andhra|Telangana', title, re.I) else "Central"
+        org = title.split()[0] if title else "Unknown"
+
+        detail = extract_fields_from_detail(link) if link else {}
+        time.sleep(0.3)
 
         jobs.append({
-            "org": title.split()[0] if title else "Unknown",
+            "org": org,
             "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
             "post": title,
             "vacancies": vac,
-            "qualification": qual,
-            "age": "",
-            "lastDate": "TBD",
-            "lastDateFull": "TBD",
+            "qualification": detail.get("q") or qual,
+            "age": detail.get("age", ""),
+            "lastDate": detail.get("ld", "TBD"),
+            "lastDateFull": detail.get("ld", "TBD"),
             "startDate": "TBD",
-            "payLevel": "",
+            "payLevel": detail.get("pay", ""),
             "category": "Govt",
             "state": state,
             "link": link,
