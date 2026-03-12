@@ -5,7 +5,7 @@ PAY_KEYWORDS = [
     # Level 10 — IAS-grade (~₹80–90k)
     (r'\b(IAS|IPS|IFS|deputy\s*collector|UPSC\s*civil|UPSC\s*CMSE|CMSE\b|UPSC\s*CAPF|CAPF\b|civil\s*services)\b', "Level 10"),
     # Level 9 — Gazetted Group A (~₹75–85k)
-    (r'\b(section\s*officer|DSP\b|deputy\s*superintendent|senior\s*accounts?\s*officer|administrative\s*officer|MPPSC|NPSC|PCS\b|pollution\s*control|HKRN\b|UPSSSC\s*pollution)\b', "Level 9"),
+    (r'\b(section\s*officer|DSP\b|deputy\s*superintendent|senior\s*accounts?\s*officer|administrative\s*officer|MPPSC|NPSC|PCS\b|pollution\s*control|HKRN\b|UPSSSC\s*pollution|private\s*secretary|MPESB\b|supreme\s*court)\b', "Level 9"),
     # Level 8 — Group B Gazetted (~₹68–75k)
     (r'\b(assistant\s*audit\s*officer|AAO\b|assistant\s*accounts?\s*officer|enforcement\s*(?:officer|directorate)|OPSC\b|dental\s*surgeon|VAS\b|VEO\b|assistant\s*director|NIB\b)\b', "Level 8"),
     # Level 7 — Inspector grade (~₹63–70k)
@@ -16,7 +16,7 @@ PAY_KEYWORDS = [
     # Level 5 — Technician / Nurse (~₹42–45k)
     (r'\b(technician\b|pharmacist\b|lab\s*assistant|foreman\b|draftsman\b|fireman\b|apprentice\b|nurse\b|staff\s*nurse|nursing|AAI\b)\b', "Level 5"),
     # Level 4 — Head Constable / Steno (~₹37–40k)
-    (r'\b(stenographer\b|steno\b|head\s*constable|UDC\b|upper\s*division\s*clerk|senior\s*assistant|sr\.?\s*assistant|non\s*teaching\b|NCERT\s*non\s*teaching|PSSSB\s*senior)\b', "Level 4"),
+    (r'\b(stenographer\b|steno\b|head\s*constable|UDC\b|upper\s*division\s*clerk|senior\s*assistant|sr\.?\s*assistant|non\s*teaching\b|NCERT\s*non\s*teaching|PSSSB\s*senior|DSSSB\b|KMC\b)\b', "Level 4"),
     # Level 3 — Constable / Teacher / Clerk (~₹32–35k)
     (r'\b(constable\b|DEO\b|data\s*entry|tax\s*assistant|Agniveer\b|NTPC\b|SSR\b|MR\b|GDS\b|teacher\b|JBT\b|PSTET\b|CTET\b|anganwadi\b|KVS\b|NVS\b|punjab\s*police|police\s*constable|ITI\b|HPRCA\b|navy\b)\b', "Level 3"),
     # Level 2 — LDC / Clerk / Junior Assistant (~₹30–32k)
