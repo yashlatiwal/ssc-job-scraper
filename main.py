@@ -1,10 +1,10 @@
 import json, os, re, traceback
 from datetime import date
-from scrapers.haryanajobs import scrape_haryanajobs
 from scrapers.sarkarinetwork import scrape_sarkarinetwork
 from scrapers.govtjobguru import scrape_govtjobguru
-from scrapers.freejobalert import scrape_freejobalert
-from scrapers.employmentnews import scrape_employmentnews
+from scrapers.sarkariresult import scrape_sarkariresult
+from scrapers.rojgarresult import scrape_rojgarresult
+from scrapers.sarkarijobfind import scrape_sarkarijobfind
 from scrapers._base import infer_pay_from_text, find_vacancies
 from telegram_sender import send_jobs
 
@@ -97,11 +97,11 @@ def main():
     all_jobs = []
 
     scrapers = [
-        ("haryanajobs.in",        scrape_haryanajobs),
-        ("sarkarinetwork.com",     scrape_sarkarinetwork),
-        ("govtjobguru.in",         scrape_govtjobguru),
-        ("freejobalert.com",       scrape_freejobalert),
-        ("employmentnews.gov.in",  scrape_employmentnews),
+        ("sarkariresult.com",   scrape_sarkariresult),
+        ("rojgarresult.com",    scrape_rojgarresult),
+        ("sarkarijobfind.com",  scrape_sarkarijobfind),
+        ("govtjobguru.in",      scrape_govtjobguru),
+        ("sarkarinetwork.com",  scrape_sarkarinetwork),
     ]
 
     for source, fn in scrapers:
