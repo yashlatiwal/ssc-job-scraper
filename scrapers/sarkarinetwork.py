@@ -28,6 +28,9 @@ def scrape_sarkarinetwork():
             continue
         title = a.get_text(strip=True)
         link = a.get("href", "")
+        # Fix relative links
+        if link and not link.startswith("http"):
+            link = "https://sarkarinetwork.com" + link if link.startswith("/") else ""
         if not title or len(title) < 10 or link in seen:
             continue
         if NOISE.search(title):
