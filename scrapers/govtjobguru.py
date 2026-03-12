@@ -7,7 +7,6 @@ from scrapers._base import find_vacancies, find_qualification, extract_fields_fr
 
 URL = "https://govtjobguru.in/"
 
-# Skip nav links, result/admit card pages, category headings
 NOISE = re.compile(
     r'(Jobs›|Jobs\s*›|\d+\s*Jobs|Result\s*Declared|Answer\s*Key|'
     r'Admit\s*Card|Exam\s*Date|Exam\s*City|Score\s*Card|Cut\s*Off|'
@@ -35,21 +34,24 @@ def scrape_govtjobguru():
             continue
         seen.add(link)
 
-        # Extract vacancy count strictly from title only (not bleed from page)
-        vac = find_vacancies(title)
+        # Title vacancy is most reliable — use it as the primary source
+        title_vac = find_vacancies(title)
         qual = find_qualification(title)
         state = "Central"
-        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|Odisha|Bihar', title, re.I):
+        if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|Odisha', title, re.I):
             state = "State"
 
         org = title.split()[0] if title else "Unknown"
         detail = extract_fields_from_detail(link) if link else {}
 
+        # Prefer title vacancy; fall back to detail only if title had none
+        final_vac = title_vac or detail.get("vac", 0)
+
         jobs.append({
             "org": org,
             "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
             "post": title,
-            "vacancies": detail.get("vac") or vac,
+            "vacancies": final_vac,
             "qualification": detail.get("q") or qual,
             "age": detail.get("age", ""),
             "lastDate": detail.get("ld", "TBD"),
