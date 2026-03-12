@@ -121,6 +121,13 @@ def main():
             print(f"  ❌ {source}: {e}")
             traceback.print_exc()
 
+    # Health check — warn if a source returned 0
+    print("\n📊 SOURCE HEALTH:")
+    for source, fn in scrapers:
+        count = sum(1 for j in all_jobs if j.get("source") == source)
+        status = "✅" if count >= 3 else ("⚠️  LOW" if count > 0 else "❌ ZERO")
+        print(f"  {status}  {source}: {count} jobs")
+
     # Dedup by link + fuzzy title similarity
     before = len(all_jobs)
     all_jobs = dedup_jobs(all_jobs)
