@@ -10,6 +10,12 @@ URLS = [
     "https://haryanajobs.in/",
 ]
 
+NOISE = re.compile(
+    r'(Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
+    r'Exam\s*City|Score\s*Card|Cut\s*Off|Interview\s*Results?|DV\s*Candidates)',
+    re.I
+)
+
 def scrape_haryanajobs():
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -23,7 +29,7 @@ def scrape_haryanajobs():
     for url in URLS:
         try:
             resp = requests.get(url, headers=headers, timeout=15)
-            print(f"  haryanajobs {url[-30:]} → HTTP {resp.status_code}")
+            print(f"  haryanajobs → HTTP {resp.status_code}")
             if resp.status_code != 200:
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -36,11 +42,13 @@ def scrape_haryanajobs():
                 link = title_tag.get("href", "")
                 if not title or len(title) < 10 or link in seen:
                     continue
-                if not re.search(r'recruit|vacanc|post|apply|job|notif|form', title, re.I):
+                if NOISE.search(title):
+                    continue
+                if not re.search(r'recruit|vacanc|apply|notif|form\b', title, re.I):
                     continue
                 seen.add(link)
 
-                vac = find_vacancies(title)
+                title_vac = find_vacancies(title)
                 qual = find_qualification(title)
                 state = "State"
                 if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b', title, re.I):
@@ -48,12 +56,13 @@ def scrape_haryanajobs():
 
                 org = title.split()[0] if title else "Unknown"
                 detail = extract_fields_from_detail(link) if link else {}
+                final_vac = title_vac or detail.get("vac", 0)
 
                 jobs.append({
                     "org": org,
                     "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
                     "post": title,
-                    "vacancies": detail.get("vac") or vac,
+                    "vacancies": final_vac,
                     "qualification": detail.get("q") or qual,
                     "age": detail.get("age", ""),
                     "lastDate": detail.get("ld", "TBD"),
