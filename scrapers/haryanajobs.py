@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import re, time
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail, infer_pay_from_text
 
 URLS = [
     "https://haryanajobs.in/category/latest-jobs/",
@@ -34,10 +34,22 @@ def scrape_haryanajobs():
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            for article in soup.select("article.post, .post, h2.entry-title, h3.entry-title")[:50]:
-                a = article.select_one("a[href]") if article.name != "a" else article
-                if not a:
-                    continue
+            # Try multiple selectors — site structure varies
+            candidates = (
+                soup.select("article a[href]") or
+                soup.select("h2.entry-title a, h3.entry-title a") or
+                soup.select(".post-title a, .entry-title a") or
+                soup.select("a[href*='haryanajobs.in']")
+            )
+
+            # Fallback: grab all internal links
+            if not candidates:
+                candidates = [a for a in soup.select("a[href]")
+                              if "haryanajobs.in" in a.get("href", "")]
+
+            print(f"  haryanajobs candidates: {len(candidates)}")
+
+            for a in candidates[:80]:
                 title = a.get_text(strip=True)
                 link = a.get("href", "")
                 if not title or len(title) < 10 or link in seen:
@@ -50,10 +62,11 @@ def scrape_haryanajobs():
 
                 vac = find_vacancies(title)
                 qual = find_qualification(title)
-                state = "Central" if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b|\bNDA\b', title, re.I) else "State"
-                org = title.split()[0] if title else "Unknown"
+                state = "Central" if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b', title, re.I) else "State"
+                org = title.split()[0]
 
                 detail = extract_fields_from_detail(link) if link else {}
+                pay = detail.get("pay") or infer_pay_from_text(title)
                 time.sleep(0.3)
 
                 jobs.append({
@@ -66,7 +79,7 @@ def scrape_haryanajobs():
                     "lastDate": detail.get("ld", "TBD"),
                     "lastDateFull": detail.get("ld", "TBD"),
                     "startDate": "TBD",
-                    "payLevel": detail.get("pay", ""),
+                    "payLevel": pay or "",
                     "category": "Govt",
                     "state": state,
                     "link": link,
@@ -74,5 +87,5 @@ def scrape_haryanajobs():
         except Exception as e:
             print(f"  haryanajobs error: {e}")
 
-    print(f"  raw count from haryanajobs.in: {len(jobs)}")
+    print(f"  haryanajobs: {len(jobs)} jobs")
     return jobs

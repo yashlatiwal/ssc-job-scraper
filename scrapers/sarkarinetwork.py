@@ -3,16 +3,15 @@ from bs4 import BeautifulSoup
 import re, time
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
+from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail, infer_pay_from_text
 
 URL = "https://sarkarinetwork.com/latest-update/"
 
 NOISE = re.compile(
-    r'(Jobs›|\d+\s*Jobs›?|Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
-    r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|A\s*Job\s*Information|'
-    r'Active\s*Form|Latest\s*Job\b|Central\s*Job\b|Job\s*Samachar|'
-    r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates|'
-    r'Correction\s*Form|Edit\s*Form|TEE\s*.*Exam|BSTC|IGNOU)',
+    r'(Jobs[›\s]|\d+\s*Jobs\b|Result\s*Declared|Answer\s*Key|Admit\s*Card|'
+    r'Exam\s*Date|Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|'
+    r'Correction\s*Form|Edit\s*Form|TEE\s*.*Exam|BSTC|IGNOU|'
+    r'Interview\s*Results?|DV\s*Candidates|Online\s*Form\s*\d{4}$)',
     re.I
 )
 
@@ -23,26 +22,30 @@ def scrape_sarkarinetwork():
     jobs = []
     seen = set()
 
-    for a in soup.select("a[href]")[:120]:
+    for row in soup.select("table tr, .post-list li, article, a[href]")[:120]:
+        a = row if row.name == "a" else row.select_one("a[href]")
+        if not a:
+            continue
         title = a.get_text(strip=True)
         link = a.get("href", "")
         if not title or len(title) < 10 or link in seen:
             continue
         if NOISE.search(title):
             continue
-        if not re.search(r'recruit|vacanc|apply|notif|online\s*form|vacancy', title, re.I):
+        # Must mention vacancies or recruitment — not just a form
+        if not re.search(r'recruit|vacanc|notif|vacancy', title, re.I):
             continue
-        if not link.startswith("http") or "comment" in link:
+        if "comment" in link:
             continue
         seen.add(link)
 
         vac = find_vacancies(title)
         qual = find_qualification(title)
-        state = "State" if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|HP\b|J&K|Delhi\b|Odisha|Kerala|Tamil|Andhra|Telangana', title, re.I) else "Central"
-        org = title.split()[0] if title else "Unknown"
+        state = "State" if re.search(r'Haryana|Punjab|Rajasthan|Bihar|\bUP\b|Assam|Gujarat|Maharashtra|\bHP\b|J&K|Delhi\b', title, re.I) else "Central"
+        org = title.split()[0]
 
         detail = extract_fields_from_detail(link) if link else {}
-        time.sleep(0.3)
+        pay = detail.get("pay") or infer_pay_from_text(title)
 
         jobs.append({
             "org": org,
@@ -54,11 +57,12 @@ def scrape_sarkarinetwork():
             "lastDate": detail.get("ld", "TBD"),
             "lastDateFull": detail.get("ld", "TBD"),
             "startDate": "TBD",
-            "payLevel": detail.get("pay", ""),
+            "payLevel": pay or "",
             "category": "Govt",
             "state": state,
             "link": link,
         })
+        time.sleep(0.3)
 
     print(f"  sarkarinetwork: {len(jobs)} listings")
     return jobs
