@@ -3,26 +3,26 @@ import re
 # ── Pay level keyword map ─────────────────────────────────────────────────────
 PAY_KEYWORDS = [
     # Level 10 — IAS-grade (~₹80–90k)
-    (r'\b(IAS|IPS|IFS|deputy\s*collector|UPSC\s*civil|UPSC\s*CMSE|CMSE\b|UPSC\s*CAPF|CAPF\b|civil\s*services)\b', "Level 10"),
+    (r'\b(IAS|IPS|IFS|deputy\s*collector|UPSC\s*civil|UPSC\s*CMSE|CMSE\b|UPSC\s*CAPF|CAPF\b|civil\s*services|SEBI\b|RBI\s*grade\s*B|ORA\b)\b', "Level 10"),
     # Level 9 — Gazetted Group A (~₹75–85k)
-    (r'\b(section\s*officer|DSP\b|deputy\s*superintendent|senior\s*accounts?\s*officer|administrative\s*officer|MPPSC|NPSC|PCS\b|pollution\s*control|HKRN\b|UPSSSC\s*pollution|private\s*secretary|MPESB\b|supreme\s*court)\b', "Level 9"),
+    (r'\b(section\s*officer|DSP\b|deputy\s*superintendent|senior\s*accounts?\s*officer|administrative\s*officer|MPPSC|NPSC|PCS\b|pollution\s*control|HKRN\b|UPSSSC\s*pollution|private\s*secretary|MPESB\b|supreme\s*court|prosecution\s*officer|BPSC\b|specialist\s*officer|SO\b|executive\s*trainee|management\s*trainee|GAIL\b|BSNL\s*senior|senior\s*executive|NABARD\b)\b', "Level 9"),
     # Level 8 — Group B Gazetted (~₹68–75k)
-    (r'\b(assistant\s*audit\s*officer|AAO\b|assistant\s*accounts?\s*officer|enforcement\s*(?:officer|directorate)|OPSC\b|dental\s*surgeon|VAS\b|VEO\b|assistant\s*director|NIB\b)\b', "Level 8"),
+    (r'\b(assistant\s*audit\s*officer|AAO\b|assistant\s*accounts?\s*officer|enforcement\s*(?:officer|directorate)|OPSC\b|dental\s*surgeon|VAS\b|VEO\b|assistant\s*director|NIB\b|tutor\b|clinical\s*instructor|associate\s*officer|Federal\s*Bank\s*associate|AIIMS\b|BEL\b|HLL\b|Mahanadi\s*Coalfields|coalfields\b)\b', "Level 8"),
     # Level 7 — Inspector grade (~₹63–70k)
-    (r'\b(income\s*tax\s*inspector|GST\s*inspector|CBI\b|NIA\b|preventive\s*officer|station\s*master|assistant\s*manager|IBPS\s*deputy|excise\s*inspector|sub\s*inspector|SI\b|CGL\b|ALP\b|RRB\s*ALP|loco\s*pilot|APSSB\b)\b', "Level 7"),
+    (r'\b(income\s*tax\s*inspector|GST\s*inspector|CBI\b|NIA\b|preventive\s*officer|station\s*master|assistant\s*manager|IBPS\s*deputy|excise\s*inspector|sub\s*inspector|SI\b|CGL\b|ALP\b|RRB\s*ALP|loco\s*pilot|APSSB\b|junior\s*analyst|UPSSSC\s*junior|circle\s*base\s*officer|CBO\b|UP\s*metro|metro\s*vacanc)\b', "Level 7"),
     # Level 6 — JE / Graduate posts (~₹50–55k)
-    (r'\b(junior\s*engineer|JE\b|JJA\b|junior\s*judicial\s*assistant|stenographer\s*grade[\s-]?c|auditor\b|accountant\b|RBI\s*assistant|IBPS\b|bank\s*(PO|officer)|AFCAT\b|deputy\s*manager|graduate\s*engineer|CEL\b|guest\s*instructor|paramedical\b|RRB\s*paramedical|IOCL\b|IDBI\b)\b', "Level 6"),
+    (r'\b(junior\s*engineer|JE\b|JJA\b|junior\s*judicial\s*assistant|stenographer\s*grade[\s-]?c|auditor\b|accountant\b|RBI\s*assistant|IBPS\b|bank\s*(PO|officer)|AFCAT\b|deputy\s*manager|graduate\s*engineer|CEL\b|guest\s*instructor|paramedical\b|RRB\s*paramedical|IOCL\b|IDBI\b|NFSU\b|Cochin\s*Shipyard|shipyard\b|workman\b|pump\s*operator)\b', "Level 6"),
     (r'\b(engineer\b|doctor\b|professor\b|NEET\b)\b', "Level 6"),
     # Level 5 — Technician / Nurse (~₹42–45k)
-    (r'\b(technician\b|pharmacist\b|lab\s*assistant|foreman\b|draftsman\b|fireman\b|apprentice\b|nurse\b|staff\s*nurse|nursing|AAI\b)\b', "Level 5"),
+    (r'\b(technician\b|pharmacist\b|lab\s*assistant|foreman\b|draftsman\b|fireman\b|apprentice\b|nurse\b|staff\s*nurse|nursing|AAI\b|RRC\b|RRB\s*apprentice|railway\s*apprentice)\b', "Level 5"),
     # Level 4 — Head Constable / Steno (~₹37–40k)
-    (r'\b(stenographer\b|steno\b|head\s*constable|UDC\b|upper\s*division\s*clerk|senior\s*assistant|sr\.?\s*assistant|non\s*teaching\b|NCERT\s*non\s*teaching|PSSSB\s*senior|DSSSB\b|KMC\b)\b', "Level 4"),
+    (r'\b(stenographer\b|steno\b|head\s*constable|UDC\b|upper\s*division\s*clerk|senior\s*assistant|sr\.?\s*assistant|non\s*teaching\b|NCERT\s*non\s*teaching|PSSSB\s*senior|DSSSB\b|KMC\b|army\s*NCC|NCC\s*entry|selection\s*post)\b', "Level 4"),
     # Level 3 — Constable / Teacher / Clerk (~₹32–35k)
-    (r'\b(constable\b|DEO\b|data\s*entry|tax\s*assistant|Agniveer\b|NTPC\b|SSR\b|MR\b|GDS\b|teacher\b|JBT\b|PSTET\b|CTET\b|anganwadi\b|KVS\b|NVS\b|punjab\s*police|police\s*constable|ITI\b|HPRCA\b|navy\b)\b', "Level 3"),
+    (r'\b(constable\b|DEO\b|data\s*entry|tax\s*assistant|Agniveer\b|NTPC\b|SSR\b|MR\b|GDS\b|teacher\b|JBT\b|PSTET\b|CTET\b|anganwadi\b|KVS\b|NVS\b|punjab\s*police|police\s*constable|ITI\b|HPRCA\b|navy\b|army\s*rally|rally\s*bharti)\b', "Level 3"),
     # Level 2 — LDC / Clerk / Junior Assistant (~₹30–32k)
-    (r'\b(LDC\b|lower\s*division\s*clerk|court\s*clerk|clerk\b|JSA\b|CHSL\b|junior\s*assistant|jr\.?\s*assistant|bank\s*assistant\b|SBI\s*clerk|SSB\s*clerk|SSB\s*junior)\b', "Level 2"),
+    (r'\b(LDC\b|lower\s*division\s*clerk|court\s*clerk|clerk\b|JSA\b|CHSL\b|junior\s*assistant|jr\.?\s*assistant|bank\s*assistant\b|SBI\s*clerk|SSB\s*clerk|SSB\s*junior|BSSC\s*inter|inter\s*level|Nainital\s*Bank|development\s*assistant)\b', "Level 2"),
     # Level 1 — MTS / Group D (~₹28–30k)
-    (r'\b(MTS\b|multi\s*tasking|peon\b|attendant\b|helper\b|group[\s-]?[dD]\b|4th[\s-]?grade|RSSB\s*4th)\b', "Level 1"),
+    (r'\b(MTS\b|multi\s*tasking|peon\b|attendant\b|helper\b|group[\s-]?[dD]\b|4th[\s-]?grade|RSSB\s*4th|CCC\b)\b', "Level 1"),
 ]
 
 PAY_DISPLAY = {
