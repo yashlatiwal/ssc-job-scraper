@@ -55,17 +55,26 @@ def find_vacancies(text):
     if not text:
         return 0
     patterns = [
+        # Direct: "349 posts", "6110 vacancies"
         r'(\d[\d,]+)\s*(?:posts?|vacancies|vacancy|seats?|positions?)',
-        r'(?:posts?|vacancies|vacancy|seats?)\s*[:\-]?\s*(\d[\d,]+)',
-        r'(\d[\d,]+)\s*(?:nos?\.?|numbers?)',
+        # Reverse: "posts: 349"
+        r'(?:posts?|vacancies|vacancy|seats?|total\s*posts?)\s*[:\-]?\s*(\d[\d,]+)',
+        # With words in between: "115 Various Posts", "34 Graduate Engineer Vacancies"
+        r'(\d[\d,]+)\s+(?:[\w&,]+\s+){0,6}(?:posts?|vacancies|vacancy)',
+        # "for X posts/vacancies"
+        r'for\s+(\d[\d,]+)\s+(?:[\w\s,&]+?\s+)?(?:posts?|vacancies)',
+        # total / nos
         r'total\s*[:\-]?\s*(\d[\d,]+)',
+        r'(\d[\d,]+)\s*(?:nos?\.?|numbers?)',
     ]
+    best = 0
     for pat in patterns:
-        m = re.search(pat, text, re.I)
-        if m:
+        for m in re.finditer(pat, text, re.I):
             v = int(m.group(1).replace(',', ''))
             if 1 <= v <= 200000 and not (2020 <= v <= 2030):
-                return v
+                if v > best:
+                    best = v
+    return best
     return 0
 
 def find_age(text):
