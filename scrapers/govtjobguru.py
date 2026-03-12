@@ -12,7 +12,7 @@ NOISE = re.compile(
     r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|A\s*Job\s*Information|'
     r'Active\s*Form|Latest\s*Job\b|Central\s*Job\b|Job\s*Samachar|'
     r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates|'
-    r'Notification\s*Status|Exam\s*Schedule)',
+    r'Notification\s*Status|Exam\s*Schedule|Correction\s*Form|Edit\s*Form|BSTC|IGNOU)',
     re.I
 )
 

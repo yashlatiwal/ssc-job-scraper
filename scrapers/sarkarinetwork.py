@@ -11,7 +11,8 @@ NOISE = re.compile(
     r'(Jobs›|\d+\s*Jobs›?|Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|'
     r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|A\s*Job\s*Information|'
     r'Active\s*Form|Latest\s*Job\b|Central\s*Job\b|Job\s*Samachar|'
-    r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates)',
+    r'Offline\s*Form\b|Copy\s*Post|Interview\s*Results?|DV\s*Candidates|'
+    r'Correction\s*Form|Edit\s*Form|TEE\s*.*Exam|BSTC|IGNOU)',
     re.I
 )
 
@@ -29,7 +30,7 @@ def scrape_sarkarinetwork():
             continue
         if NOISE.search(title):
             continue
-        if not re.search(r'recruit|vacanc|apply|notif|form\b', title, re.I):
+        if not re.search(r'recruit|vacanc|apply|notif|online\s*form|vacancy', title, re.I):
             continue
         if not link.startswith("http") or "comment" in link:
             continue

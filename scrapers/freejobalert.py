@@ -13,9 +13,14 @@ NOISE = re.compile(
     r'Exam\s*City|Score\s*Card|Cut\s*Off|Syllabus|Interview\s*Results?|DV\s*Candidates|'
     r'All\s*India\s*Govt|State\s*Govt\s*Jobs|Engineering\s*Jobs|Police.Defence|'
     r'Upcoming\s*Notifications|Work\s*From\s*Home|Sports\s*Quota|Ex-Servicemen|'
-    r'Examwise|Notification\s*Status|FreeJobAlert)',
+    r'Examwise|Notification\s*Status|FreeJobAlert|'
+    r'Correction\s*Form|Edit\s*Form|TEE\s*.*Exam|BSTC|IGNOU)',
     re.I
 )
+
+# Short nav-link titles that exactly match category names
+NAV_EXACT = {'anganwadi recruitment', 'latest jobs', 'central jobs', 'state jobs',
+             'all govt jobs', 'police jobs', 'defence jobs', 'bank jobs', 'railway jobs'}
 
 def extract_detail(url):
     try:
@@ -44,7 +49,7 @@ def scrape_freejobalert():
         h = a.get("href", "")
         if not t or len(t) < 15:
             continue
-        if NOISE.search(t):
+        if NOISE.search(t) or t.lower().strip() in NAV_EXACT:
             continue
         if not re.search(r'recruit|vacanc|apply|notif|form\b', t, re.I):
             continue
