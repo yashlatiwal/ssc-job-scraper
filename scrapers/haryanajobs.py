@@ -66,6 +66,8 @@ def scrape_haryanajobs():
                 org = title.split()[0]
 
                 detail = extract_fields_from_detail(link) if link else {}
+                if not vac and detail.get("vac"):
+                    vac = detail["vac"]
                 pay = detail.get("pay") or infer_pay_from_text(title)
                 time.sleep(0.3)
 

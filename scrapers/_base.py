@@ -174,22 +174,73 @@ def merge_with_text(detail, full_text, post_title=""):
             detail["payLevel"] = inferred
     return detail
 
+def _safe_vacancy_from_detail(soup):
+    """Extract vacancy count safely — only from headline/intro, never sidebar."""
+    # Priority 1: h1/h2 heading text
+    for tag in soup.select("h1, h2"):
+        t = clean(tag.get_text())
+        v = find_vacancies(t)
+        if v and not (2020 <= v <= 2030):
+            return v
+
+    # Priority 2: first <p> or intro paragraph before any aside/sidebar
+    main = soup.select_one("article, .entry-content, .post-content, main, #content")
+    if main:
+        # Remove sidebar children first
+        for aside in main.select("aside, .sidebar, .widget, .related-posts"):
+            aside.decompose()
+        paras = main.find_all("p", limit=5)
+        for p in paras:
+            t = clean(p.get_text())
+            v = find_vacancies(t)
+            if v and not (2020 <= v <= 2030) and v < 100000:
+                return v
+
+    # Priority 3: first 400 chars of full page text (before sidebars load)
+    full = clean(soup.get_text(separator=" "))
+    snippet = full[:400]
+    v = find_vacancies(snippet)
+    if v and not (2020 <= v <= 2030) and v < 100000:
+        return v
+
+    return 0
+
+
 def extract_fields_from_detail(url):
-    """Fetch detail page for age, lastDate, pay ONLY. Never use for vacancy."""
+    """Fetch detail page. Returns vac, age, lastDate, pay, qualification."""
     try:
         import requests
         from bs4 import BeautifulSoup
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         resp = requests.get(url, headers=headers, timeout=12)
         soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Safe vacancy from headline only
+        vac = _safe_vacancy_from_detail(soup)
+
+        # Tables first for structured data
         detail = extract_from_tables(soup)
+
+        # Full text for everything else (last 6000 chars covers most pages)
         text = clean(soup.get_text(separator=" "))
-        merged = merge_with_text(detail, text[:3000])
+        full = text[:6000]
+
+        if not detail.get("age"):
+            detail["age"] = find_age(full)
+        if not detail.get("lastDate"):
+            detail["lastDate"] = find_lastdate(full)
+        if not detail.get("payLevel"):
+            detail["payLevel"] = find_pay(full)
+        if not detail.get("payLevel"):
+            detail["payLevel"] = infer_pay_from_text(full[:800]) or ""
+        qual = find_qualification(full[:2000])
+
         return {
-            "q": merged.get("qualification", ""),
-            "age": merged.get("age", ""),
-            "ld": merged.get("lastDate", ""),
-            "pay": merged.get("payLevel", ""),
+            "vac": vac,
+            "q": qual,
+            "age": detail.get("age", ""),
+            "ld": detail.get("lastDate", ""),
+            "pay": detail.get("payLevel", ""),
         }
     except Exception as e:
         print(f"    ⚠️ detail fetch failed: {e}")

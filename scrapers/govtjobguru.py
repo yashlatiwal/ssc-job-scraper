@@ -51,6 +51,8 @@ def scrape_govtjobguru():
         org = title.split()[0] if title else "Unknown"
 
         detail = extract_fields_from_detail(link) if link else {}
+        if not vac and detail.get("vac"):
+            vac = detail["vac"]
         time.sleep(0.3)
 
         jobs.append({
