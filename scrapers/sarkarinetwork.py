@@ -39,7 +39,7 @@ def scrape_sarkarinetwork():
             continue
         seen.add(link)
 
-        vac = find_vacancies(title)
+        title_vac = find_vacancies(title)
         qual = find_qualification(title)
         state = "Central"
         if re.search(r'Haryana|Punjab|Rajasthan|Bihar|UP\b|Assam|Gujarat|Maharashtra|HP\b|J&K|Delhi\b', title, re.I):
@@ -48,11 +48,13 @@ def scrape_sarkarinetwork():
         org = title.split()[0] if title else "Unknown"
         detail = extract_fields_from_detail(link) if link else {}
 
+        final_vac = title_vac or detail.get("vac", 0)
+
         jobs.append({
             "org": org,
             "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
             "post": title,
-            "vacancies": detail.get("vac") or vac,
+            "vacancies": final_vac,
             "qualification": detail.get("q") or qual,
             "age": detail.get("age", ""),
             "lastDate": detail.get("ld", "TBD"),
