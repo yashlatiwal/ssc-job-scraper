@@ -69,28 +69,6 @@ def dedup_jobs(jobs):
     return out
 
 
-def fetch_vacancy_from_google(title):
-    """Search Google for vacancy count when it's missing from the page."""
-    try:
-        import requests
-        from bs4 import BeautifulSoup
-        query = re.sub(r'(apply online|notification out|check details)', '', title, flags=re.I).strip()
-        query = query[:80] + " vacancies 2026"
-        url = f"https://www.google.com/search?q={requests.utils.quote(query)}&num=3"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-        resp = requests.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        snippet = soup.get_text(separator=" ")[:2000]
-        v = find_vacancies(snippet)
-        if v and not (2020 <= v <= 2030) and v < 100000:
-            return v
-    except Exception as e:
-        print(f"    ⚠️ Google vacancy search failed: {e}")
-    return 0
-
 
 def main():
     print(f"🔍 Scraping jobs for {TODAY}...")
@@ -132,18 +110,6 @@ def main():
     before = len(all_jobs)
     all_jobs = dedup_jobs(all_jobs)
     print(f"\n🔄 Dedup: {before} → {len(all_jobs)} jobs ({before - len(all_jobs)} removed)")
-
-    # Fill missing vacancies via Google search
-    missing_vac = [j for j in all_jobs if not j.get("vacancies", 0)]
-    print(f"\n🔎 Fetching vacancies from Google for {len(missing_vac)} jobs...")
-    filled = 0
-    for j in missing_vac:
-        v = fetch_vacancy_from_google(j.get("post", ""))
-        if v:
-            j["vacancies"] = v
-            filled += 1
-            print(f"  ✅ {j['org']}: {v} vacancies")
-    print(f"  Filled {filled}/{len(missing_vac)} via Google")
 
     with_pay = sum(1 for j in all_jobs if j.get("payLevel") and j["payLevel"] not in ("", "Not specified"))
     with_vac = sum(1 for j in all_jobs if j.get("vacancies", 0) > 0)
