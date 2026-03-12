@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scrapers._base import find_vacancies, find_qualification, extract_fields_from_detail
+from scrapers._base import find_vacancies, find_qualification
 
 URLS = [
     "https://haryanajobs.in/category/latest-jobs/",
@@ -18,7 +18,7 @@ NOISE = re.compile(
 
 def scrape_haryanajobs():
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Referer": "https://www.google.com/",
@@ -48,27 +48,23 @@ def scrape_haryanajobs():
                     continue
                 seen.add(link)
 
-                title_vac = find_vacancies(title)
+                vac = find_vacancies(title)
                 qual = find_qualification(title)
                 state = "State"
                 if re.search(r'\bSSC\b|\bUPSC\b|\bRRB\b|\bRBI\b|\bSBI\b|\bNDA\b|\bCDS\b', title, re.I):
                     state = "Central"
 
-                org = title.split()[0] if title else "Unknown"
-                detail = extract_fields_from_detail(link) if link else {}
-                final_vac = title_vac or detail.get("vac", 0)
-
                 jobs.append({
-                    "org": org,
+                    "org": title.split()[0] if title else "Unknown",
                     "fullOrg": title.split(":")[0].strip() if ":" in title else title[:40],
                     "post": title,
-                    "vacancies": final_vac,
-                    "qualification": detail.get("q") or qual,
-                    "age": detail.get("age", ""),
-                    "lastDate": detail.get("ld", "TBD"),
-                    "lastDateFull": detail.get("ld", "TBD"),
+                    "vacancies": vac,
+                    "qualification": qual,
+                    "age": "",
+                    "lastDate": "TBD",
+                    "lastDateFull": "TBD",
                     "startDate": "TBD",
-                    "payLevel": detail.get("pay", ""),
+                    "payLevel": "",
                     "category": "Govt",
                     "state": state,
                     "link": link,
