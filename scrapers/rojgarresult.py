@@ -15,7 +15,10 @@ NOISE = re.compile(
     r'(Result\s*Declared|Answer\s*Key|Admit\s*Card|Exam\s*Date|Exam\s*City|'
     r'Score\s*Card|Cut\s*Off|Syllabus|Interview\s*Schedule|DV\s*Candidates|'
     r'Correction\s*Form|Edit\s*Form|Re-Exam|Postponed|Cancelled|'
-    r'Home|About|Contact|Login|Register|Privacy|Disclaimer|Advertisement)',
+    r'Home|About|Contact|Login|Register|Privacy|Disclaimer|Advertisement|'
+    r'JEE\s*MAIN|JEE\s*ADV|NEET\s*UG|NEET\s*PG|MBA\s*Admission|PHD\s*Course|'
+    r'B\.?Ed\s*Admission|Bar\s*Exam|AIBE\b|NTA\b|NSSNET|Final\s*Result|'
+    r'University\s*Admission|School\s*Admission|One\s*Time\s*Reg)',
     re.I
 )
 
